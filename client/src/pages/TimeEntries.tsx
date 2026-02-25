@@ -10,6 +10,7 @@ import { Modal } from '../components/ui/Modal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface EntryFormValues {
   description: string;
@@ -26,6 +27,8 @@ function EntryForm({ entry, onClose }: { entry?: TimeEntry; onClose: () => void 
   const qc = useQueryClient();
   const { data: projectsData } = useQuery({ queryKey: ['projects', {}], queryFn: () => projectsApi.list() });
   const { data: clientsData }  = useQuery({ queryKey: ['clients'],     queryFn: () => clientsApi.list() });
+  const { data: tagsData }     = useQuery({ queryKey: ['tags'],        queryFn: () => tagsApi.list() });
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>(entry?.tags.map(t => t.id) ?? []);
 
   const startDate = entry ? new Date(entry.startedAt) : new Date();
   const endDate   = entry?.endedAt ? new Date(entry.endedAt) : new Date();
@@ -55,12 +58,13 @@ function EntryForm({ entry, onClose }: { entry?: TimeEntry; onClose: () => void 
       }
       const payload = {
         description: vals.description || null,
-        projectId:   vals.projectId   ? parseInt(vals.projectId) : null,
-        clientId:    vals.clientId    ? parseInt(vals.clientId)  : null,
+        projectId:   vals.projectId   ? parseInt(vals.projectId, 10) : null,
+        clientId:    vals.clientId    ? parseInt(vals.clientId, 10)  : null,
         startedAt,
         endedAt,
         isBillable:  vals.isBillable,
         hourlyRate:  vals.hourlyRate  ? parseFloat(vals.hourlyRate) : null,
+        tagIds:      selectedTagIds,
       };
       return entry
         ? timeEntriesApi.update(entry.id, payload)
@@ -68,12 +72,14 @@ function EntryForm({ entry, onClose }: { entry?: TimeEntry; onClose: () => void 
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['time-entries'] });
+      toast.success(entry ? 'Entry updated.' : 'Entry added.');
       onClose();
     },
   });
 
   const projects = projectsData?.data ?? [];
   const clients  = clientsData?.data  ?? [];
+  const tags     = tagsData?.data     ?? [];
 
   return (
     <form onSubmit={handleSubmit(v => mutation.mutate(v))} className="space-y-4">
@@ -123,6 +129,38 @@ function EntryForm({ entry, onClose }: { entry?: TimeEntry; onClose: () => void 
           </label>
         </div>
       </div>
+      {tags.length > 0 && (
+        <div>
+          <label className="label">Tags</label>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {tags.map(t => {
+              const active = selectedTagIds.includes(t.id);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setSelectedTagIds(prev =>
+                    active ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                  )}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                  style={{
+                    backgroundColor: active ? t.color : 'transparent',
+                    color:           active ? '#fff'  : t.color,
+                    border:          `1.5px solid ${t.color}`,
+                  }}
+                >
+                  {active && (
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  {t.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <div className="flex gap-3 justify-end pt-1">
         <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
         <button type="submit" className="btn-primary" disabled={mutation.isPending}>
@@ -151,12 +189,12 @@ export function TimeEntries() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => timeEntriesApi.delete(id),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ['time-entries'] }),
+    onSuccess:  () => { qc.invalidateQueries({ queryKey: ['time-entries'] }); toast.success('Entry deleted.'); },
   });
 
   const resumeMutation = useMutation({
     mutationFn: (id: number) => timeEntriesApi.resume(id),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ['time-entries'] }),
+    onSuccess:  () => { qc.invalidateQueries({ queryKey: ['time-entries'] }); toast.success('Timer resumed.'); },
   });
 
   const entries = data?.data ?? [];
@@ -212,8 +250,19 @@ export function TimeEntries() {
                 <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                   <td className="px-4 py-3">
                     <div className="font-medium">{e.description || <span className="text-gray-400">—</span>}</div>
-                    {e.isRunning && <span className="badge badge-brand mt-0.5">Running</span>}
-                    {e.invoiceId && <span className="badge badge-green mt-0.5">Invoiced</span>}
+                    <div className="flex flex-wrap items-center gap-1 mt-1">
+                      {e.isRunning  && <span className="badge badge-brand">Running</span>}
+                      {e.invoiceId  && <span className="badge badge-green">Invoiced</span>}
+                      {e.tags.map(t => (
+                        <span
+                          key={t.id}
+                          className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium text-white"
+                          style={{ backgroundColor: t.color }}
+                        >
+                          {t.name}
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     {e.projectName ? (

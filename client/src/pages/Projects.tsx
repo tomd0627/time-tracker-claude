@@ -7,6 +7,7 @@ import { Modal } from '../components/ui/Modal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 const PROJECT_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316',
@@ -55,7 +56,7 @@ function ProjectForm({ project, onClose }: { project?: Project; onClose: () => v
       };
       return project ? projectsApi.update(project.id, payload) : projectsApi.create(payload);
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); onClose(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); toast.success(project ? 'Project updated.' : 'Project created.'); onClose(); },
   });
 
   const clients = clientsData?.data ?? [];
@@ -132,7 +133,7 @@ export function Projects() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => projectsApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['projects'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); toast.success('Project archived.'); },
   });
 
   const projects = (data?.data ?? []).filter(p => p.status !== 'archived');

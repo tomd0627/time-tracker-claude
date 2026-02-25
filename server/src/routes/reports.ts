@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { eq, gte, lte, sql, and } from 'drizzle-orm';
 import { db } from '../db/connection';
-import { clients, projects, timeEntries } from '../db/schema';
+import { clients, expenses, projects, timeEntries } from '../db/schema';
 
 const router = Router();
 
@@ -131,6 +131,25 @@ router.get('/by-month', async (req, res, next) => {
       .groupBy(sql`strftime('%Y-%m', started_at / 1000, 'unixepoch')`)
       .orderBy(sql`strftime('%Y-%m', started_at / 1000, 'unixepoch')`);
     res.json({ data: rows });
+  } catch (err) { next(err); }
+});
+
+// GET /api/reports/expenses
+router.get('/expenses', async (req, res, next) => {
+  try {
+    const { from, to } = parseDateRange(req);
+    const byCurrency = await db
+      .select({
+        currency: expenses.currency,
+        total:    sql<number>`COALESCE(SUM(${expenses.amount}), 0)`,
+        billable: sql<number>`COALESCE(SUM(CASE WHEN ${expenses.isBillable} = 1 THEN ${expenses.amount} ELSE 0 END), 0)`,
+        count:    sql<number>`COUNT(*)`,
+      })
+      .from(expenses)
+      .where(and(gte(expenses.date, from), lte(expenses.date, to)))
+      .groupBy(expenses.currency)
+      .orderBy(sql`SUM(${expenses.amount}) DESC`);
+    res.json({ data: { byCurrency } });
   } catch (err) { next(err); }
 });
 

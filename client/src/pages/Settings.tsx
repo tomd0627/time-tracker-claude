@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { settingsApi } from '../api';
 import { useSettingsStore } from '../store/settingsStore';
 import { useForm } from 'react-hook-form';
@@ -23,7 +24,7 @@ export function Settings() {
       if (vals.darkMode !== undefined) setDarkMode(Boolean(vals.darkMode));
       return settingsApi.update(vals);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['settings'] }); toast.success('Settings saved.'); },
   });
 
   if (isLoading) return <LoadingSpinner />;

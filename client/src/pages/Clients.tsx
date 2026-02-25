@@ -7,6 +7,7 @@ import { Modal } from '../components/ui/Modal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { CURRENCIES } from '../utils/currency';
 
 interface ClientFormValues {
@@ -45,7 +46,7 @@ function ClientForm({ client, onClose }: { client?: Client; onClose: () => void 
       };
       return client ? clientsApi.update(client.id, payload) : clientsApi.create(payload);
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['clients'] }); onClose(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['clients'] }); toast.success(client ? 'Client updated.' : 'Client added.'); onClose(); },
   });
 
   return (
@@ -114,7 +115,7 @@ export function Clients() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => clientsApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['clients'] }); toast.success('Client archived.'); },
   });
 
   const clients = data?.data ?? [];

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { reportsApi, timeEntriesApi, projectsApi } from '../api';
 import { formatDuration, formatHours } from '../utils/duration';
 import { formatCurrency } from '../utils/currency';
@@ -40,8 +41,8 @@ export function Dashboard() {
     queryFn: () => projectsApi.list({ status: 'active' }),
   });
 
-  const todaySummary = (todayData?.data as any) ?? {};
-  const weekSummary  = (weekData?.data as any) ?? {};
+  const todaySummary = todayData?.data;
+  const weekSummary  = weekData?.data;
   const recent = recentData?.data ?? [];
   const projects = (projectsData?.data ?? []).slice(0, 5);
 
@@ -51,10 +52,10 @@ export function Dashboard() {
 
       {todayLoading || weekLoading ? <LoadingSpinner /> : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Today" value={formatDuration(todaySummary.totalSecs ?? 0)} sub="total" />
-          <StatCard label="Billable today" value={formatDuration(todaySummary.billableSecs ?? 0)} />
-          <StatCard label="This week" value={formatHours(weekSummary.totalSecs ?? 0)} sub={`${weekSummary.entryCount ?? 0} entries`} />
-          <StatCard label="Revenue (week)" value={formatCurrency(weekSummary.revenue ?? 0)} />
+          <StatCard label="Today" value={formatDuration(todaySummary?.totalSecs ?? 0)} sub="total" />
+          <StatCard label="Billable today" value={formatDuration(todaySummary?.billableSecs ?? 0)} />
+          <StatCard label="This week" value={formatHours(weekSummary?.totalSecs ?? 0)} sub={`${weekSummary?.entryCount ?? 0} entries`} />
+          <StatCard label="Revenue (week)" value={formatCurrency(weekSummary?.revenue ?? 0)} />
         </div>
       )}
 
@@ -63,10 +64,13 @@ export function Dashboard() {
         <div className="card p-5">
           <h2 className="font-semibold mb-4">Recent Entries</h2>
           {recent.length === 0 ? (
-            <p className="text-sm text-gray-400">No entries yet. Start the timer!</p>
+            <div className="py-6 text-center">
+              <p className="text-sm text-gray-400 mb-3">No entries yet. Start the timer above!</p>
+              <Link to="/time" className="btn-secondary btn-sm">Add Entry</Link>
+            </div>
           ) : (
             <div className="space-y-2">
-              {recent.map((e: any) => (
+              {recent.map((e) => (
                 <div key={e.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{e.description || '(no description)'}</p>
@@ -85,10 +89,13 @@ export function Dashboard() {
         <div className="card p-5">
           <h2 className="font-semibold mb-4">Active Projects</h2>
           {projects.length === 0 ? (
-            <p className="text-sm text-gray-400">No projects yet.</p>
+            <div className="py-6 text-center">
+              <p className="text-sm text-gray-400 mb-3">No projects yet.</p>
+              <Link to="/projects" className="btn-secondary btn-sm">Create Project</Link>
+            </div>
           ) : (
             <div className="space-y-3">
-              {projects.map((p: any) => (
+              {projects.map((p) => (
                 <div key={p.id} className="flex items-center gap-3">
                   <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
                   <div className="flex-1 min-w-0">

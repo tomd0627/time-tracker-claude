@@ -1,7 +1,8 @@
 import { get, post, put, del } from './client';
 import type {
-  ApiResponse, Client, Project, Tag, TimeEntry,
-  Invoice, Expense, Settings
+  ApiResponse, Client, Project, Tag, TimeEntry, UnbilledTimeEntry,
+  Invoice, InvoiceCreateInput, Expense, Settings,
+  ReportSummary, ReportByClient, ReportByProject, ReportByWeek, ReportByMonth, ReportExpenses,
 } from '../types';
 
 // ─── Clients ────────────────────────────────────────────────────────────────
@@ -51,13 +52,13 @@ export type TimeEntryFilters = {
 
 export const timeEntriesApi = {
   list: (filters?: TimeEntryFilters) =>
-    get<ApiResponse<TimeEntry[]>>('/time-entries', filters as any),
+    get<ApiResponse<TimeEntry[]>>('/time-entries', filters as Record<string, string | number | boolean | undefined>),
   get: (id: number) =>
     get<ApiResponse<TimeEntry>>(`/time-entries/${id}`),
   running: () =>
     get<ApiResponse<TimeEntry | null>>('/time-entries/running'),
   unbilledEntries: (clientId?: number) =>
-    get<ApiResponse<TimeEntry[]>>('/time-entries/unbilled-entries', { clientId }),
+    get<ApiResponse<UnbilledTimeEntry[]>>('/time-entries/unbilled-entries', { clientId }),
   create: (data: Partial<TimeEntry> & { tagIds?: number[] }) =>
     post<ApiResponse<TimeEntry>>('/time-entries', data),
   start: (data: { projectId?: number; clientId?: number; description?: string; isBillable?: boolean; hourlyRate?: number; tagIds?: number[] }) =>
@@ -90,9 +91,9 @@ export const invoicesApi = {
     get<ApiResponse<Invoice[]>>('/invoices', params),
   get: (id: number) =>
     get<ApiResponse<Invoice>>(`/invoices/${id}`),
-  create: (data: unknown) =>
+  create: (data: InvoiceCreateInput) =>
     post<ApiResponse<Invoice>>('/invoices', data),
-  update: (id: number, data: unknown) =>
+  update: (id: number, data: Partial<InvoiceCreateInput>) =>
     put<ApiResponse<Invoice>>(`/invoices/${id}`, data),
   delete: (id: number) =>
     del(`/invoices/${id}`),
@@ -106,7 +107,7 @@ export const invoicesApi = {
 // ─── Expenses ────────────────────────────────────────────────────────────────
 export const expensesApi = {
   list: (params?: { projectId?: number; clientId?: number; invoiced?: boolean }) =>
-    get<ApiResponse<Expense[]>>('/expenses', params as any),
+    get<ApiResponse<Expense[]>>('/expenses', params as Record<string, string | number | boolean | undefined>),
   create: (data: Partial<Expense>) =>
     post<ApiResponse<Expense>>('/expenses', data),
   update: (id: number, data: Partial<Expense>) =>
@@ -117,11 +118,12 @@ export const expensesApi = {
 
 // ─── Reports ─────────────────────────────────────────────────────────────────
 export const reportsApi = {
-  summary:   (from?: number, to?: number) => get<ApiResponse<unknown>>('/reports/summary', { from, to }),
-  byClient:  (from?: number, to?: number) => get<ApiResponse<unknown[]>>('/reports/by-client', { from, to }),
-  byProject: (from?: number, to?: number) => get<ApiResponse<unknown[]>>('/reports/by-project', { from, to }),
-  byWeek:    (from?: number, to?: number) => get<ApiResponse<unknown[]>>('/reports/by-week', { from, to }),
-  byMonth:   (from?: number, to?: number) => get<ApiResponse<unknown[]>>('/reports/by-month', { from, to }),
+  summary:   (from?: number, to?: number) => get<ApiResponse<ReportSummary>>('/reports/summary', { from, to }),
+  byClient:  (from?: number, to?: number) => get<ApiResponse<ReportByClient[]>>('/reports/by-client', { from, to }),
+  byProject: (from?: number, to?: number) => get<ApiResponse<ReportByProject[]>>('/reports/by-project', { from, to }),
+  byWeek:    (from?: number, to?: number) => get<ApiResponse<ReportByWeek[]>>('/reports/by-week', { from, to }),
+  byMonth:   (from?: number, to?: number) => get<ApiResponse<ReportByMonth[]>>('/reports/by-month', { from, to }),
+  expenses:  (from?: number, to?: number) => get<ApiResponse<ReportExpenses>>('/reports/expenses', { from, to }),
 };
 
 // ─── Settings ────────────────────────────────────────────────────────────────
