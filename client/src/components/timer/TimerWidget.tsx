@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { timeEntriesApi, projectsApi, tagsApi } from '../../api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { projectsApi, tagsApi, timeEntriesApi } from '../../api';
 import { useTimerStore } from '../../store/timerStore';
-import { TimerDisplay } from './TimerDisplay';
 import { cn } from '../../utils/cn';
+import { TimerDisplay } from './TimerDisplay';
 
 export function TimerWidget() {
   const qc = useQueryClient();
@@ -95,11 +95,11 @@ export function TimerWidget() {
   const isLoading = startMutation.isPending || stopMutation.isPending || pauseMutation.isPending;
 
   return (
-    <div className="flex items-center gap-3">
-      {/* Description input */}
+    <div className="flex items-center gap-2 sm:gap-3">
+      {/* Description input — hidden on mobile */}
       <input
         className={cn(
-          'input w-56 text-sm',
+          'hidden sm:block input w-56 text-sm',
           running && 'border-brand-400 ring-1 ring-brand-400'
         )}
         placeholder="What are you working on?"
@@ -109,9 +109,9 @@ export function TimerWidget() {
         disabled={!!running}
       />
 
-      {/* Project selector */}
+      {/* Project selector — hidden on mobile */}
       <select
-        className="input w-36 text-sm"
+        className="hidden sm:block input w-36 text-sm"
         value={projectId ?? ''}
         onChange={e => setProjectId(e.target.value ? parseInt(e.target.value, 10) : undefined)}
         disabled={!!running}
@@ -122,9 +122,9 @@ export function TimerWidget() {
         ))}
       </select>
 
-      {/* Tag picker (not running) or tag pills (running) */}
+      {/* Tag picker (not running) or tag pills (running) — hidden on mobile */}
       {!running && tags.length > 0 && (
-        <div className="relative" ref={tagPickerRef}>
+        <div className="relative hidden sm:block" ref={tagPickerRef}>
           <button
             type="button"
             className={cn(
@@ -171,9 +171,9 @@ export function TimerWidget() {
         </div>
       )}
 
-      {/* Running tag pills */}
+      {/* Running tag pills — hidden on mobile */}
       {running && selectedTagIds.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="hidden sm:flex flex-wrap gap-1">
           {tags.filter(t => selectedTagIds.includes(t.id)).map(t => (
             <span
               key={t.id}

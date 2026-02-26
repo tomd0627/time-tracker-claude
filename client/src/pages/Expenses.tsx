@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { clientsApi, expensesApi, projectsApi, settingsApi } from '../api';
-import type { Expense, Project, Client } from '../types';
+import type { Client, Expense, Project } from '../types';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
@@ -90,7 +90,7 @@ function ExpenseForm({
         {errors.description && <p className="text-xs text-red-500 mt-1">Description is required</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label htmlFor="exp-amount" className="label">Amount</label>
           <input
@@ -124,7 +124,7 @@ function ExpenseForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label htmlFor="exp-project" className="label">Project</label>
           <select id="exp-project" className="input" {...register('projectId')}>
@@ -197,11 +197,9 @@ export function Expenses() {
   const clients  = clientsData?.data  ?? [];
   const projects = projectsData?.data ?? [];
 
-  // Lookup maps for joined display
   const projectMap = new Map<number, Project>(projects.map(p => [p.id, p]));
   const clientMap  = new Map<number, Client>(clients.map(c => [c.id, c]));
 
-  // Client-side filtering by date and billable
   const from = new Date(fromDate).getTime();
   const to   = new Date(`${toDate}T23:59:59`).getTime();
 
@@ -213,7 +211,6 @@ export function Expenses() {
     return true;
   });
 
-  // Totals grouped by currency
   const totals = expenses.reduce<Record<string, { total: number; billable: number }>>((acc, e) => {
     if (!acc[e.currency]) acc[e.currency] = { total: 0, billable: 0 };
     acc[e.currency].total += e.amount;
@@ -234,8 +231,9 @@ export function Expenses() {
       {/* Filters */}
       <div className="card p-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-600 dark:text-gray-400">From</label>
+          <label htmlFor="exp-filter-from" className="text-sm font-medium text-gray-600 dark:text-gray-400">From</label>
           <input
+            id="exp-filter-from"
             className="input w-36"
             type="date"
             value={fromDate}
@@ -243,8 +241,9 @@ export function Expenses() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-600 dark:text-gray-400">To</label>
+          <label htmlFor="exp-filter-to" className="text-sm font-medium text-gray-600 dark:text-gray-400">To</label>
           <input
+            id="exp-filter-to"
             className="input w-36"
             type="date"
             value={toDate}
@@ -255,6 +254,7 @@ export function Expenses() {
           className="input w-40"
           value={filterClient}
           onChange={e => setFilterClient(e.target.value)}
+          aria-label="Filter by client"
         >
           <option value="">All clients</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -263,6 +263,7 @@ export function Expenses() {
           className="input w-36"
           value={filterBillable}
           onChange={e => setFilterBillable(e.target.value as '' | 'true' | 'false')}
+          aria-label="Filter by billable"
         >
           <option value="">All expenses</option>
           <option value="true">Billable only</option>
@@ -301,84 +302,86 @@ export function Expenses() {
         />
       ) : (
         <div className="card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Date</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Description</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Project / Client</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Amount</th>
-                <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Billable</th>
-                <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Status</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {expenses.map(e => {
-                const project = e.projectId ? projectMap.get(e.projectId) : undefined;
-                const client  = e.clientId  ? clientMap.get(e.clientId)   : undefined;
-                return (
-                  <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(e.date)}</td>
-                    <td className="px-4 py-3 font-medium">{e.description}</td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {project ? (
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: project.color }} />
-                          <span>{project.name}</span>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
+              <thead className="bg-gray-50 dark:bg-gray-800/50">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Date</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Description</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Project / Client</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Amount</th>
+                  <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Billable</th>
+                  <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Status</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {expenses.map(e => {
+                  const project = e.projectId ? projectMap.get(e.projectId) : undefined;
+                  const client  = e.clientId  ? clientMap.get(e.clientId)   : undefined;
+                  return (
+                    <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(e.date)}</td>
+                      <td className="px-4 py-3 font-medium">{e.description}</td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {project ? (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: project.color }} />
+                            <span>{project.name}</span>
+                          </div>
+                        ) : client ? (
+                          <span>{client.name}</span>
+                        ) : (
+                          <span className="text-gray-300 dark:text-gray-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono font-medium">
+                        {formatCurrency(e.amount, e.currency)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {e.isBillable
+                          ? <span className="badge badge-green">Yes</span>
+                          : <span className="badge badge-gray">No</span>}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {e.invoiceId
+                          ? <span className="badge badge-green">Invoiced</span>
+                          : <span className="badge badge-gray">Pending</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1 justify-end">
+                          <button
+                            type="button"
+                            className="btn-ghost btn-sm p-1.5"
+                            onClick={() => openEdit(e)}
+                            title="Edit"
+                            disabled={!!e.invoiceId}
+                          >
+                            <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            <span className="sr-only">Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost btn-sm p-1.5 text-red-400"
+                            onClick={() => setDeleteId(e.id)}
+                            title="Delete"
+                            disabled={!!e.invoiceId}
+                          >
+                            <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            <span className="sr-only">Delete</span>
+                          </button>
                         </div>
-                      ) : client ? (
-                        <span>{client.name}</span>
-                      ) : (
-                        <span className="text-gray-300 dark:text-gray-600">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono font-medium">
-                      {formatCurrency(e.amount, e.currency)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {e.isBillable
-                        ? <span className="badge badge-green">Yes</span>
-                        : <span className="badge badge-gray">No</span>}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {e.invoiceId
-                        ? <span className="badge badge-green">Invoiced</span>
-                        : <span className="badge badge-gray">Pending</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 justify-end">
-                        <button
-                          type="button"
-                          className="btn-ghost btn-sm p-1.5"
-                          onClick={() => openEdit(e)}
-                          title="Edit"
-                          disabled={!!e.invoiceId}
-                        >
-                          <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                          </svg>
-                          <span className="sr-only">Edit</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-ghost btn-sm p-1.5 text-red-400"
-                          onClick={() => setDeleteId(e.id)}
-                          title="Delete"
-                          disabled={!!e.invoiceId}
-                        >
-                          <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                          </svg>
-                          <span className="sr-only">Delete</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

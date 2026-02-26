@@ -67,7 +67,7 @@ function ProjectForm({ project, onClose }: { project?: Project; onClose: () => v
         <label className="label">Name *</label>
         <input className="input" placeholder="My Project" {...register('name', { required: true })} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Client</label>
           <select className="input" {...register('clientId')}>
@@ -89,7 +89,7 @@ function ProjectForm({ project, onClose }: { project?: Project; onClose: () => v
             <button
               key={c}
               type="button"
-              className="w-7 h-7 rounded-full transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-brand-400"
+              className="w-8 h-8 rounded-full transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-brand-400"
               style={{
                 backgroundColor: c,
                 boxShadow: color === c ? `0 0 0 3px white, 0 0 0 5px ${c}` : undefined,
@@ -99,7 +99,7 @@ function ProjectForm({ project, onClose }: { project?: Project; onClose: () => v
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Hourly Rate</label>
           <input className="input" type="number" step="0.01" placeholder="0.00" {...register('hourlyRate')} />

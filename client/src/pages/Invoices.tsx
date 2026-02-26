@@ -1,15 +1,15 @@
+import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { clientsApi, expensesApi, invoicesApi, settingsApi, timeEntriesApi } from '../api';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { Modal } from '../components/ui/Modal';
+import type { Expense, Invoice, UnbilledTimeEntry } from '../types';
 import { formatCurrency } from '../utils/currency';
 import { formatDate } from '../utils/dates';
-import type { Expense, Invoice, UnbilledTimeEntry } from '../types';
 
 const STATUS_BADGE: Record<string, string> = {
   draft: 'badge-gray', sent: 'badge-blue', paid: 'badge-green', overdue: 'badge-red',
@@ -123,8 +123,8 @@ function InvoiceForm({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="space-y-5">
-      {/* Client & dates */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Client & currency */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label" htmlFor="inv-client">Client *</label>
           <select id="inv-client" className="input" value={clientId ?? ''} onChange={e => setClientId(e.target.value ? parseInt(e.target.value, 10) : undefined)}>
@@ -137,7 +137,8 @@ function InvoiceForm({ onClose }: { onClose: () => void }) {
           <input id="inv-currency" className="input" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase().slice(0, 3))} placeholder="USD" maxLength={3} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      {/* Dates */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label" htmlFor="inv-issue-date">Issue Date</label>
           <input id="inv-issue-date" className="input" type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} />
@@ -158,12 +159,12 @@ function InvoiceForm({ onClose }: { onClose: () => void }) {
               const rate  = e.hourlyRate ?? e.projectRate ?? e.clientRate ?? 0;
               return (
                 <label key={e.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-0">
-                  <input type="checkbox" className="accent-brand-500" checked={selectedEntryIds.has(e.id)} onChange={() => toggleEntry(e.id)} />
+                  <input type="checkbox" className="accent-brand-500 flex-shrink-0" checked={selectedEntryIds.has(e.id)} onChange={() => toggleEntry(e.id)} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{e.description || '(no description)'}</p>
                     <p className="text-xs text-gray-400">{formatDate(e.startedAt)} · {hours}h @ ${rate}/hr</p>
                   </div>
-                  <span className="text-sm font-mono">{formatCurrency(parseFloat(hours) * rate, currency)}</span>
+                  <span className="text-sm font-mono flex-shrink-0">{formatCurrency(parseFloat(hours) * rate, currency)}</span>
                 </label>
               );
             })}
@@ -178,12 +179,12 @@ function InvoiceForm({ onClose }: { onClose: () => void }) {
           <div id="inv-expenses" className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden max-h-40 overflow-y-auto">
             {unbilledExpenses.map(e => (
               <label key={e.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-0">
-                <input type="checkbox" className="accent-brand-500" checked={selectedExpenseIds.has(e.id)} onChange={() => toggleExpense(e.id)} />
+                <input type="checkbox" className="accent-brand-500 flex-shrink-0" checked={selectedExpenseIds.has(e.id)} onChange={() => toggleExpense(e.id)} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{e.description}</p>
                   <p className="text-xs text-gray-400">{formatDate(e.date)} · {e.currency}</p>
                 </div>
-                <span className="text-sm font-mono">{formatCurrency(e.amount, e.currency)}</span>
+                <span className="text-sm font-mono flex-shrink-0">{formatCurrency(e.amount, e.currency)}</span>
               </label>
             ))}
           </div>
@@ -199,10 +200,27 @@ function InvoiceForm({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         {customLines.map(line => (
-          <div key={line.id} className="grid grid-cols-5 gap-2 mb-2">
-            <input className="input col-span-2" placeholder="Description" value={line.description} onChange={e => updateLine(line.id, { description: e.target.value })} />
-            <input className="input" type="number" placeholder="Qty" value={line.quantity} onChange={e => updateLine(line.id, { quantity: parseFloat(e.target.value) || 0 })} />
-            <input className="input" type="number" placeholder="Rate" value={line.unitPrice} onChange={e => updateLine(line.id, { unitPrice: parseFloat(e.target.value) || 0 })} />
+          <div key={line.id} className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-2">
+            <input
+              className="input col-span-3 sm:col-span-2"
+              placeholder="Description"
+              value={line.description}
+              onChange={e => updateLine(line.id, { description: e.target.value })}
+            />
+            <input
+              className="input"
+              type="number"
+              placeholder="Qty"
+              value={line.quantity}
+              onChange={e => updateLine(line.id, { quantity: parseFloat(e.target.value) || 0 })}
+            />
+            <input
+              className="input"
+              type="number"
+              placeholder="Rate"
+              value={line.unitPrice}
+              onChange={e => updateLine(line.id, { unitPrice: parseFloat(e.target.value) || 0 })}
+            />
             <button type="button" className="btn-ghost btn-sm text-red-400" onClick={() => removeLine(line.id)}>✕</button>
           </div>
         ))}
@@ -280,60 +298,61 @@ export function Invoices() {
         />
       ) : (
         <div className="card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Invoice #</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Client</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Issue Date</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Due Date</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Total</th>
-                <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Status</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                  <td className="px-4 py-3 font-mono font-medium">{inv.invoiceNumber}</td>
-                  <td className="px-4 py-3">{inv.clientName ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-500">{formatDate(inv.issueDate)}</td>
-                  <td className="px-4 py-3 text-gray-500">{inv.dueDate ? formatDate(inv.dueDate) : '—'}</td>
-                  <td className="px-4 py-3 text-right font-semibold">{formatCurrency(inv.total, inv.currency)}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={STATUS_BADGE[inv.status] ?? 'badge-gray'}>{inv.status}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      {inv.status === 'draft' && (
-                        <button type="button" className="btn-secondary btn-sm" onClick={() => sendMutation.mutate(inv.id)}>Mark Sent</button>
-                      )}
-                      {(inv.status === 'sent' || inv.status === 'overdue') && (
-                        <button type="button" className="btn-primary btn-sm" onClick={() => paidMutation.mutate(inv.id)}>Mark Paid</button>
-                      )}
-                      <a
-                        href={invoicesApi.pdfUrl(inv.id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-ghost btn-sm p-1.5"
-                        aria-label="Download PDF"
-                      >
-                        <span className="sr-only">Download PDF</span>
-                        <svg className="w-4 h-4" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                      </a>
-                      {inv.status === 'draft' && (
-                        <button type="button" className="btn-ghost btn-sm p-1.5 text-red-400" onClick={() => setDeleteId(inv.id)} aria-label="Delete invoice">
-                          <svg className="w-4 h-4" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        </button>
-                      )}
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
+              <thead className="bg-gray-50 dark:bg-gray-800/50">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Invoice #</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Client</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Issue Date</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Due Date</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Total</th>
+                  <th className="text-center px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Status</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {invoices.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                    <td className="px-4 py-3 font-mono font-medium">{inv.invoiceNumber}</td>
+                    <td className="px-4 py-3">{inv.clientName ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(inv.issueDate)}</td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{inv.dueDate ? formatDate(inv.dueDate) : '—'}</td>
+                    <td className="px-4 py-3 text-right font-semibold">{formatCurrency(inv.total, inv.currency)}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={STATUS_BADGE[inv.status] ?? 'badge-gray'}>{inv.status}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 justify-end">
+                        {inv.status === 'draft' && (
+                          <button type="button" className="btn-secondary btn-sm" onClick={() => sendMutation.mutate(inv.id)}>Mark Sent</button>
+                        )}
+                        {(inv.status === 'sent' || inv.status === 'overdue') && (
+                          <button type="button" className="btn-primary btn-sm" onClick={() => paidMutation.mutate(inv.id)}>Mark Paid</button>
+                        )}
+                        <a
+                          href={invoicesApi.pdfUrl(inv.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-ghost btn-sm p-1.5"
+                        >
+                          <span className="sr-only">Download PDF</span>
+                          <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                        </a>
+                        {inv.status === 'draft' && (
+                          <button type="button" className="btn-ghost btn-sm p-1.5 text-red-400" onClick={() => setDeleteId(inv.id)} aria-label="Delete invoice">
+                            <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

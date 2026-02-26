@@ -55,7 +55,7 @@ function ClientForm({ client, onClose }: { client?: Client; onClose: () => void 
         <label className="label">Name *</label>
         <input className="input" placeholder="Acme Corp" {...register('name', { required: true })} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Email</label>
           <input className="input" type="email" {...register('email')} />
@@ -69,7 +69,7 @@ function ClientForm({ client, onClose }: { client?: Client; onClose: () => void 
         <label className="label">Address</label>
         <textarea className="input" rows={2} {...register('address')} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">City</label>
           <input className="input" {...register('city')} />
@@ -79,7 +79,7 @@ function ClientForm({ client, onClose }: { client?: Client; onClose: () => void 
           <input className="input" {...register('country')} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Currency</label>
           <select className="input" {...register('currency')}>

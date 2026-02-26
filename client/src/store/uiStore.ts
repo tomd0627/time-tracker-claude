@@ -5,6 +5,9 @@ type ModalType = 'entry-form' | 'client-form' | 'project-form' | 'tag-form' | 'e
 interface UiState {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  mobileSidebarOpen: boolean;
+  toggleMobileSidebar: () => void;
+  closeMobileSidebar: () => void;
   activeModal: ModalType;
   modalPayload: unknown;
   openModal: (modal: ModalType, payload?: unknown) => void;
@@ -14,6 +17,9 @@ interface UiState {
 export const useUiStore = create<UiState>((set) => ({
   sidebarCollapsed: false,
   toggleSidebar: () => set(s => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+  mobileSidebarOpen: false,
+  toggleMobileSidebar: () => set(s => ({ mobileSidebarOpen: !s.mobileSidebarOpen })),
+  closeMobileSidebar: () => set({ mobileSidebarOpen: false }),
   activeModal: null,
   modalPayload: null,
   openModal: (modal, payload = null) => set({ activeModal: modal, modalPayload: payload }),
